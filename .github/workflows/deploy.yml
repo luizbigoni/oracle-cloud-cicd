@@ -1,0 +1,57 @@
+name: Deploy Oracle Cloud
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar chave SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/oracle.key
+          chmod 600 ~/.ssh/oracle.key
+          ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Criar backup da aplicação atual
+        run: |
+          ssh -i ~/.ssh/oracle.key             "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}"             '
+            mkdir -p /home/ubuntu/backups
+            TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+
+            if [ -d /home/ubuntu/hello-web ]; then
+              cp -r /home/ubuntu/hello-web                 /home/ubuntu/backups/hello-web-$TIMESTAMP
+            fi
+            '
+
+      - name: Enviar nova aplicação
+        run: |
+          scp -i ~/.ssh/oracle.key             app.py requirements.txt             "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/ubuntu/hello-web/"
+
+      - name: Atualizar dependências e reiniciar aplicação
+        run: |
+          ssh -i ~/.ssh/oracle.key             "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}"             '
+            cd /home/ubuntu/hello-web
+            source venv/bin/activate
+            pip install -r requirements.txt
+            sudo systemctl restart hello-web
+            sleep 3
+            curl --fail --max-time 10 http://127.0.0.1:5000
+            '
+
+      - name: Discord - sucesso
+        if: success()
+        run: |
+          curl -H "Content-Type: application/json"             -d "{"content":"✅ Deploy realizado com sucesso no Oracle Cloud!\nCommit: ${{ github.sha }}"}"             "${{ secrets.DISCORD_WEBHOOK }}"
+
+      - name: Discord - erro
+        if: failure()
+        run: |
+          curl -H "Content-Type: application/json"             -d "{"content":"❌ Erro durante o deploy da aplicação no Oracle Cloud.\nCommit: ${{ github.sha }}"}"             "${{ secrets.DISCORD_WEBHOOK }}"
