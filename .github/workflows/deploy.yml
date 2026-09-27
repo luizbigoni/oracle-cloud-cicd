@@ -50,7 +50,7 @@ jobs:
             pip install -r requirements.txt
             sudo systemctl restart hello-web
             sleep 3
-            curl --fail --max-time 10 http://127.0.0.1:5000
+            curl --fail --max-time 10 http://127.0.0.1:9999
             '
 
       - name: Discord - sucesso
