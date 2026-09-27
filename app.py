@@ -10,7 +10,7 @@ def home():
             <title>Atividade Oracle Cloud</title>
         </head>
         <body>
-            <h1>Hello World!</h1>
+            <h1>Hello World- CI/CD funcionando!</h1>
             <h2>Servidor Web no Oracle Cloud</h2>
             <p>Aplicacao desenvolvida em Python com Flask.</p>
         </body>
